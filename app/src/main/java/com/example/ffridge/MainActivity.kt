@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,81 +38,48 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun FoodPage(helper: FoodDatabaseHelper) {
-    var name by remember { mutableStateOf("") }
-    var countStr by remember { mutableStateOf("") }
-    var addDate by remember { mutableStateOf("") }
-    var expireDate by remember { mutableStateOf("") }
     val foodList = remember { mutableStateListOf<Food>() }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var name by remember { mutableStateOf("") }
+    var expire by remember { mutableStateOf("") }
+    var countStr by remember { mutableStateOf("") }
 
-    fun refreshList() {
+    fun refreshData() {
         foodList.clear()
         foodList.addAll(helper.getAllFood())
+    }
+
+    // 页面打开先加载一次数据
+    LaunchedEffect(Unit) {
+        refreshData()
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = "智能冰箱食材管理")
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("食材名称") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = countStr,
-            onValueChange = { countStr = it },
-            label = { Text("数量") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = addDate,
-            onValueChange = { addDate = it },
-            label = { Text("入库日期 yyyy-MM-dd") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = expireDate,
-            onValueChange = { expireDate = it },
-            label = { Text("过期日期 yyyy-MM-dd") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {
-                val count = countStr.toIntOrNull()
-                if (name.isNotBlank() && count != null && addDate.isNotBlank() && expireDate.isNotBlank()) {
-                    helper.insertFood(name, count, addDate, expireDate)
-                    name = ""
-                    countStr = ""
-                    addDate = ""
-                    expireDate = ""
-                    refreshList()
-                }
-            }) {
-                Text("添加食材")
-            }
-            Button(onClick = { refreshList() }) {
-                Text("刷新列表")
-            }
+        Text(text = "冰箱食材管理", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
+        Button(onClick = { showAddDialog = true }) {
+            Text("添加食材")
         }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyColumn(modifier = Modifier.weight(1f)) {
             items(foodList) { food ->
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Column {
                             Text("名称：${food.name}")
                             Text("数量：${food.count}")
-                            Text("入库：${food.addDate}")
                             Text("过期：${food.expireDate}")
                         }
                         Button(onClick = {
-                            helper.deleteFood(food.id)
-                            refreshList()
+                            helper.deleteFood(food)
+                            refreshData()
                         }) {
                             Text("删除")
                         }
@@ -119,5 +87,37 @@ fun FoodPage(helper: FoodDatabaseHelper) {
                 }
             }
         }
+    }
+
+    if (showAddDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text("新增食材") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("食材名称") })
+                    OutlinedTextField(value = expire, onValueChange = { expire = it }, label = { Text("过期日期") })
+                    OutlinedTextField(value = countStr, onValueChange = { countStr = it }, label = { Text("数量") })
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val num = countStr.toIntOrNull() ?: 1
+                    helper.addFood(name, expire, num)
+                    showAddDialog = false
+                    name = ""
+                    expire = ""
+                    countStr = ""
+                    refreshData()
+                }) {
+                    Text("保存")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showAddDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
