@@ -1,5 +1,8 @@
 package com.example.ffridge
 
+import androidx.compose.ui.graphics.Color
+import java.text.SimpleDateFormat
+import java.util.Date
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,6 +36,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             FoodPage(dbHelper)
         }
+    }
+}
+fun isExpire(expireStr: String): Boolean {
+    return try {
+        val sdf = SimpleDateFormat("yyyy-MM-dd")
+        val expireDate = sdf.parse(expireStr)
+        expireDate?.before(Date()) == true
+    } catch (e: Exception) {
+        false
     }
 }
 
@@ -75,7 +87,11 @@ fun FoodPage(helper: FoodDatabaseHelper) {
                         Column {
                             Text("名称：${food.name}")
                             Text("数量：${food.count}")
-                            Text("过期：${food.expireDate}")
+                            Text(
+                                "过期：${food.expireDate}",
+                                color = if(isExpire(food.expireDate)) Color.Red else Color.Black
+                            )
+
                         }
                         Button(onClick = {
                             helper.deleteFood(food)
