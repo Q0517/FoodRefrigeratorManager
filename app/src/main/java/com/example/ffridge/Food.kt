@@ -1,7 +1,9 @@
 package com.example.ffridge
+
 data class Food(
-    val id: Int = 0,
+    val id: Int,
     val name: String,
-    val expireDate: String,
-    val count: Int
+    val count: Int,
+    val shelfLife: String
 )
+
