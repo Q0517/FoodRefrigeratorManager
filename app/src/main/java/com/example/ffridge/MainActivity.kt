@@ -29,6 +29,11 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,17 +90,26 @@ fun getFoodStatus(days: Long): String {
 fun FridgePage() {
 
     var selectedPage by remember { mutableStateOf(0) }
-    val foodList = remember {
-        mutableStateListOf(
-            Food(1, "鸡蛋", 6, "2026-12-01"),
-            Food(2, "牛奶", 4, "2026-11-20")
+    val foodViewModel: FoodViewModel = viewModel()
+    val foodData by foodViewModel.allFood.collectAsState()
+    val foodList = foodData.map { food ->
+        Food(
+            food.id,
+            food.name,
+            food.count,
+            food.shelfLife,
+            food.location
         )
-    }
+    }.toMutableList()
 
     var name by remember { mutableStateOf("") }
     var countStr by remember { mutableStateOf("") }
     var shelf by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("冷藏室") }
     var filter by remember { mutableStateOf("全部") }
+    var locationFilter by remember {
+        mutableStateOf("全部")
+    }
     var message by remember { mutableStateOf("") }
     var editingFood by remember { mutableStateOf<Food?>(null) }
 
@@ -117,12 +131,19 @@ fun FridgePage() {
     val filteredList = foodList.filter { item ->
         val days = getRemainingDays(item.shelfLife) ?: 999L
 
-        when (filter) {
+        val matchStatus = when (filter) {
             "已过期" -> days < 0
             "即将过期" -> days in 0L..3L
             "正常" -> days > 3
             else -> true
         }
+
+        val matchLocation = when (locationFilter) {
+            "全部" -> true
+            else -> item.location == locationFilter
+        }
+
+        matchStatus && matchLocation
     }
 // 按照剩余保质期排序
     val sortedList = filteredList.sortedBy {
@@ -202,7 +223,7 @@ fun FridgePage() {
                     fontSize = 23.sp
                 )
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "食材状态统计",
@@ -220,9 +241,9 @@ fun FridgePage() {
                 Text("正常：${normalCount}种", color = Color(0xFF4CAF50))
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // 食材状态筛选
             Text("食材筛选")
@@ -233,28 +254,24 @@ fun FridgePage() {
             ) {
                 TextButton(
                     onClick = { filter = "全部" },
-                    colors = mintTextButtonColors
                 ) {
                     Text("全部")
                 }
 
                 TextButton(
                     onClick = { filter = "全部" },
-                    colors = mintTextButtonColors
                 ) {
                     Text("已过期")
                 }
 
                 TextButton(
                     onClick = { filter = "全部" },
-                    colors = mintTextButtonColors
                 ) {
                     Text("即将过期")
                 }
 
                 TextButton(
                     onClick = { filter = "全部" },
-                    colors = mintTextButtonColors
                 ) {
                     Text("正常")
                 }
@@ -266,8 +283,9 @@ fun FridgePage() {
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("食材名称") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             // 输入数量
@@ -275,8 +293,9 @@ fun FridgePage() {
                 value = countStr,
                 onValueChange = { countStr = it },
                 label = { Text("数量") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -285,12 +304,64 @@ fun FridgePage() {
                 value = shelf,
                 onValueChange = { shelf = it },
                 label = { Text("保质期（yyyy-MM-dd）") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 // 添加食材
+            Text(
+                text = "选择存放位置："
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = { location = "冷藏室" },
+                    modifier = Modifier.weight(1f),
+                    colors = mintButtonColors
+                ) {
+                    Text(if (location == "冷藏室") "✓ 冷藏室" else "冷藏室")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = { location = "冷冻室" },
+                    modifier = Modifier.weight(1f),
+                    colors = mintButtonColors
+                ) {
+                    Text(if (location == "冷冻室") "✓ 冷冻室" else "冷冻室")
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = { location = "冰箱门架" },
+                    modifier = Modifier.weight(1f),
+                    colors = mintButtonColors
+                ) {
+                    Text(if (location == "冰箱门架") "✓ 冰箱门架" else "冰箱门架")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = { location = "果蔬区" },
+                    modifier = Modifier.weight(1f),
+                    colors = mintButtonColors
+                ) {
+                    Text(if (location == "果蔬区") "✓ 果蔬区" else "果蔬区")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
                     val cnt = countStr.toIntOrNull()
@@ -311,10 +382,16 @@ fun FridgePage() {
                         else -> {
                             if (editingFood == null) {
                                 // 添加新食材
-                                val newId = (foodList.maxOfOrNull { it.id } ?: 0) + 1
+                                val newId = (foodData.maxOfOrNull { it.id } ?: 0) + 1
 
-                                foodList.add(
-                                    Food(newId, name.trim(), cnt, shelf)
+                                foodViewModel.insert(
+                                    FoodEntity(
+                                        newId,
+                                        name.trim(),
+                                        cnt,
+                                        shelf,
+                                        location
+                                    )
                                 )
 
                                 message = "添加成功"
@@ -322,18 +399,15 @@ fun FridgePage() {
                                 // 修改已有食材
                                 val oldFood = editingFood!!
 
-                                val index = foodList.indexOfFirst {
-                                    it.id == oldFood.id
-                                }
-
-                                if (index != -1) {
-                                    foodList[index] = Food(
+                                foodViewModel.update(
+                                    FoodEntity(
                                         oldFood.id,
                                         name.trim(),
                                         cnt,
-                                        shelf
+                                        shelf,
+                                        location
                                     )
-                                }
+                                )
 
                                 message = "修改成功"
                             }
@@ -377,6 +451,7 @@ fun FridgePage() {
             }
 
             // 显示食材列表及过期状态
+// 按存放位置筛选
 
             LazyColumn(
                 modifier = Modifier
@@ -407,6 +482,10 @@ fun FridgePage() {
                             Text(
                                 text = "食材名称：${food.name}"
                             )
+                            Text(
+                                text = "📍 存放位置：${food.location}",
+                                color = Color(0xFF0288D1)
+                            )
 
 
                             Row(
@@ -421,15 +500,15 @@ fun FridgePage() {
                                 Button(
                                     colors = mintButtonColors,
                                     onClick = {
-                                        val index = foodList.indexOfFirst {
-                                            it.id == food.id
-                                        }
-
-                                        if (index != -1) {
-                                            foodList[index] = food.copy(
-                                                count = food.count + 1
+                                        foodViewModel.update(
+                                            FoodEntity(
+                                                food.id,
+                                                food.name,
+                                                food.count + 1,
+                                                food.shelfLife,
+                                                food.location
                                             )
-                                        }
+                                        )
                                     }
 
                                 ) {
@@ -440,15 +519,15 @@ fun FridgePage() {
                                     colors = mintButtonColors,
                                     onClick = {
                                         if (food.count > 1) {
-                                            val index = foodList.indexOfFirst {
-                                                it.id == food.id
-                                            }
-
-                                            if (index != -1) {
-                                                foodList[index] = food.copy(
-                                                    count = food.count - 1
+                                            foodViewModel.update(
+                                                FoodEntity(
+                                                    food.id,
+                                                    food.name,
+                                                    food.count - 1,
+                                                    food.shelfLife,
+                                                    food.location
                                                 )
-                                            }
+                                            )
                                         } else {
                                             message = "食材数量不能小于1"
                                         }
@@ -487,7 +566,14 @@ fun FridgePage() {
                             Button(
                                 colors = mintButtonColors,
                                 onClick = {
-                                    foodList.remove(food)
+                                    foodViewModel.delete(
+                                        FoodEntity(
+                                            food.id,
+                                            food.name,
+                                            food.count,
+                                            food.shelfLife
+                                        )
+                                    )
                                     message = "已删除：${food.name}"
                                 },
                                 modifier = Modifier.fillMaxWidth()
@@ -502,6 +588,7 @@ fun FridgePage() {
                             Button(
                                 onClick = {
                                     editingFood = food
+                                    location = food.location
                                     name = food.name
                                     countStr = food.count.toString()
                                     shelf = food.shelfLife
@@ -522,51 +609,84 @@ fun FridgePage() {
         if (selectedPage == 2) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "🔔 比奇堡食材提醒",
+                    text = "📍 比奇堡冰箱位置管理",
                     style = MaterialTheme.typography.headlineSmall,
                     color = Color(0xFF0277BD)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                val reminderList = foodList.filter {
-                    val days = getRemainingDays(it.shelfLife)
-                    days != null && days <= 3
+                Text("选择存放位置：")
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf("全部", "冷藏室", "冷冻室").forEach { place ->
+                        Button(
+                            onClick = { locationFilter = place },
+                            modifier = Modifier.weight(1f),
+                            colors = mintButtonColors
+                        ) {
+                            Text(
+                                if (locationFilter == place) "✓ $place"
+                                else place
+                            )
+                        }
+                    }
                 }
 
-                if (reminderList.isEmpty()) {
-                    Text("🎉 暂时没有需要提醒的食材！")
-                } else {
-                    reminderList.forEach { food ->
-                        val days = getRemainingDays(food.shelfLife)
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf("冰箱门架", "果蔬区").forEach { place ->
+                        Button(
+                            onClick = { locationFilter = place },
+                            modifier = Modifier.weight(1f),
+                            colors = mintButtonColors
+                        ) {
+                            Text(
+                                if (locationFilter == place) "✓ $place"
+                                else place
+                            )
+                        }
+                    }
+                }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val locationList = if (locationFilter == "全部") {
+                    foodList
+                } else {
+                    foodList.filter { it.location == locationFilter }
+                }
+
+                Text("当前食材：${locationList.size} 种")
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    items(items = locationList) { food ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 6.dp),
+                                .padding(vertical = 5.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFFFF1D6)
+                                containerColor = Color(0xFFFFF8D6)
                             )
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp)
+                                modifier = Modifier.padding(12.dp)
                             ) {
-                                Text("食材：${food.name}")
+                                Text("食材名称：${food.name}")
                                 Text("数量：${food.count}")
+                                Text("📍 存放位置：${food.location}")
                                 Text("保质期：${food.shelfLife}")
-
-                                Text(
-                                    text = if (days!! < 0) {
-                                        "⚠️ 已过期 ${-days} 天"
-                                    } else {
-                                        "⚠️ 剩余 ${days} 天到期"
-                                    },
-                                    color = Color(0xFFE65100)
-                                )
                             }
                         }
                     }
@@ -647,7 +767,7 @@ fun FridgePage() {
                 selected = selectedPage == 2,
                 onClick = { selectedPage = 2 },
                 icon = { Text("🔔") },
-                label = { Text("提醒") }
+                label = { Text("位置管理") }
             )
 
             NavigationBarItem(
