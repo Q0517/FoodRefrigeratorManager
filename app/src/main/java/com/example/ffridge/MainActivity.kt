@@ -687,6 +687,33 @@ fun FridgePage() {
                                 Text("数量：${food.count}")
                                 Text("📍 存放位置：${food.location}")
                                 Text("保质期：${food.shelfLife}")
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Button(
+                                    onClick = {
+                                        val newLocation = when (food.location) {
+                                            "冷藏室" -> "冷冻室"
+                                            "冷冻室" -> "冰箱门架"
+                                            "冰箱门架" -> "果蔬区"
+                                            else -> "冷藏室"
+                                        }
+
+                                        foodViewModel.update(
+                                            FoodEntity(
+                                                food.id,
+                                                food.name,
+                                                food.count,
+                                                food.shelfLife,
+                                                newLocation
+                                            )
+                                        )
+                                    },
+                                    colors = mintButtonColors,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("修改存放位置")
+                                }
                             }
                         }
                     }
